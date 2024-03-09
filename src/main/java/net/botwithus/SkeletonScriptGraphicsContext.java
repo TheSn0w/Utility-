@@ -118,6 +118,7 @@ public class SkeletonScriptGraphicsContext extends ScriptGraphicsContext {
 
     private String healthFeedbackMessage = "";
     private String prayerFeedbackMessage = "";
+    private String logoutFeedbackMessage = "";
     private String prayerPointsThresholdStr = "1000";
     private String healthThresholdStr = "50";
     private static float RGBToFloat(int rgbValue) {
@@ -253,6 +254,9 @@ public class SkeletonScriptGraphicsContext extends ScriptGraphicsContext {
                         ImGui.Text(prayerFeedbackMessage);
                     }
                     ImGui.SeparatorText("Combat Options");
+                    ImGui.PushStyleColor(0, RGBToFloat(134), RGBToFloat(136), RGBToFloat(138), 1.0f); //text colour
+                    ImGui.Text("Have on action bar");
+                    ImGui.PopStyleColor(1);
                     script.UseSoulSplit = ImGui.Checkbox("Use Soul Split in Combat", script.UseSoulSplit);
                     script.UseVulnBomb = ImGui.Checkbox("Use Vulnerability Bomb", script.UseVulnBomb);
                     script.UseSmokeBomb = ImGui.Checkbox("Use Smoke Cloud", script.UseSmokeBomb);
@@ -261,11 +265,64 @@ public class SkeletonScriptGraphicsContext extends ScriptGraphicsContext {
                     script.useaggression = ImGui.Checkbox("Use Aggression Flask", script.useaggression);
                     script.usedarkness = ImGui.Checkbox("Use Darkness", script.usedarkness);
                     script.quickprayer = ImGui.Checkbox("Use Quick Prayer 1 in Combat", script.quickprayer);
+                    script.useExcalibur = ImGui.Checkbox("Use Excalibur", script.useExcalibur);
+                    script.UseDeathGrasp = ImGui.Checkbox("Use Death's Grasp in EOF", script.UseDeathGrasp);
                     ImGui.SeparatorText("Teleport Options");
                     script.teleportToWarOnHealth = ImGui.Checkbox("Teleport to War's Retreat on Low Health", script.teleportToWarOnHealth);
                     ImGui.PushStyleColor(0, RGBToFloat(134), RGBToFloat(136), RGBToFloat(138), 1.0f); //text colour
                     ImGui.Text("Will teleport to War's Retreat if health falls below Threshold");
                     ImGui.PopStyleColor(1);
+                    ImGui.SeparatorText("Miscellaneous Options");
+                    script.KwuarmIncence = ImGui.Checkbox("Use Kwuarm Incense Sticks", script.KwuarmIncence);
+                    if (script.KwuarmIncence) {
+                        ImGui.SameLine();
+                        script.overloadEnabled = ImGui.Checkbox("Overload?", script.overloadEnabled);
+                    }
+
+// For Torstol Incense
+                    script.TorstolIncence = ImGui.Checkbox("Use Torstol Incense Sticks", script.TorstolIncence);
+                    if (script.TorstolIncence) {
+                        ImGui.SameLine();
+                        script.overloadEnabled = ImGui.Checkbox("Overload?", script.overloadEnabled);
+                    }
+
+// For Lantadyme Incense
+                    script.LantadymeIncence = ImGui.Checkbox("Use Lantadyme Incense Sticks", script.LantadymeIncence);
+                    if (script.LantadymeIncence) {
+                        ImGui.SameLine();
+                        script.overloadEnabled = ImGui.Checkbox("Overload?", script.overloadEnabled);
+                    }
+                    script.usePenance = ImGui.Checkbox("Use Powder of Penance", script.usePenance);
+                    script.useProtection = ImGui.Checkbox("Use Powder of Protection", script.useProtection);
+                    script.useAntifire = ImGui.Checkbox("Use Antifire variant", script.useAntifire);
+                    boolean tempUseScriptureOfWen = script.UseScriptureOfWen;
+                    if (ImGui.Checkbox("Use Scripture of Wen in Combat", tempUseScriptureOfWen)) {
+                        script.UseScriptureOfWen = true;
+                        script.UseScriptureOfJas = false;
+                        script.UseScriptureOfFul = false;
+                    } else if (script.UseScriptureOfWen) {
+                        script.UseScriptureOfWen = false;
+                    }
+
+// Use Scripture of Jas
+                    boolean tempUseScriptureOfJas = script.UseScriptureOfJas;
+                    if (ImGui.Checkbox("Use Scripture of Jas in Combat", tempUseScriptureOfJas)) {
+                        script.UseScriptureOfWen = false;
+                        script.UseScriptureOfJas = true;
+                        script.UseScriptureOfFul = false;
+                    } else if (script.UseScriptureOfJas) {
+                        script.UseScriptureOfJas = false;
+                    }
+
+// Use Scripture of Ful
+                    boolean tempUseScriptureOfFul = script.UseScriptureOfFul;
+                    if (ImGui.Checkbox("Use Scripture of Ful in Combat", tempUseScriptureOfFul)) {
+                        script.UseScriptureOfWen = false;
+                        script.UseScriptureOfJas = false;
+                        script.UseScriptureOfFul = true;
+                    } else if (script.UseScriptureOfFul) {
+                        script.UseScriptureOfFul = false;
+                    }
 
 
                     long elapsedTimeMillis = System.currentTimeMillis() - this.scriptStartTime;
@@ -279,32 +336,76 @@ public class SkeletonScriptGraphicsContext extends ScriptGraphicsContext {
                     ImGui.EndTabItem();
                 }
                 if (ImGui.BeginTabItem("Logout Timer Setup", ImGuiWindowFlag.None.getValue())) {
+                    script.Logout = ImGui.Checkbox("Use Logout", script.Logout);
+                    ImGui.SeparatorText("Make sure the Script is started before setting logout timer");
+                    ImGui.PopStyleColor(1);
+                    ImGui.SetItemWidth(50);
                     logoutHoursStr = ImGui.InputText("Hours until logout", logoutHoursStr);
+                    ImGui.SetItemWidth(50);
                     logoutMinutesStr = ImGui.InputText("Minutes until logout", logoutMinutesStr);
                     if (ImGui.Button("Set Logout Timer")) {
                         try {
                             int hours = Integer.parseInt(logoutHoursStr.trim());
                             int minutes = Integer.parseInt(logoutMinutesStr.trim());
-                            long calculatedTargetLogoutTimeMillis = System.currentTimeMillis() + hours * 3600000 + minutes * 60000;
-                            script.setTargetLogoutTimeMillis(calculatedTargetLogoutTimeMillis); // Update the script's target logout time
+                            if (hours < 0 || minutes < 0) {
+                                logoutFeedbackMessage = "Please enter a valid positive number for hours and minutes.";
+                            } else {
+                                long currentTimeMillis = System.currentTimeMillis();
+                                long calculatedTargetLogoutTimeMillis = currentTimeMillis + hours * 3600000 + minutes * 60000;
+                                script.setTargetLogoutTimeMillis(calculatedTargetLogoutTimeMillis);
+                                logoutFeedbackMessage = String.format("Logout timer set for %d hours and %d minutes from now.", hours, minutes);
+                            }
                         } catch (NumberFormatException e) {
-                            // Handle invalid number format
+                            logoutFeedbackMessage = "Please enter a valid number for hours and minutes.";
                         }
+                    }
+                    if (!logoutFeedbackMessage.isEmpty()) {
+                        ImGui.Text(logoutFeedbackMessage);
+                    }
+
+                    // Display Countdown until Logout
+                    long remainingTimeMillis = script.getTargetLogoutTimeMillis() - System.currentTimeMillis();
+                    if (remainingTimeMillis > 0) {
+                        long hours = remainingTimeMillis / 3600000;
+                        long minutes = (remainingTimeMillis % 3600000) / 60000;
+                        long seconds = (remainingTimeMillis % 60000) / 1000;
+                        String countdownMessage = String.format("Time until logout: %02d:%02d:%02d", hours, minutes, seconds);
+                        ImGui.Text(countdownMessage);
+                    } else {
+                        ImGui.SeparatorText("Logout timer is not set or has expired.");
+                    }
 
                     ImGui.EndTabItem();
                 }
-
-
-                ImGui.EndTabItem();
-                }
                 if (ImGui.BeginTabItem("Skilling Options", ImGuiWindowFlag.None.getValue())) {
                     ImGui.SeparatorText("Skilling Potions");
+
+                    script.useLightForm = ImGui.Checkbox("Use Light Form", script.useLightForm);
+                    ImGui.PushStyleColor(0, RGBToFloat(134), RGBToFloat(136), RGBToFloat(138), 1.0f); //text colour
+                    ImGui.SameLine();
+                    ImGui.Text("Have on action bar");
+                    ImGui.PopStyleColor(1);
+                    script.useCrystalMask = ImGui.Checkbox("Use Crystal Mask", script.useCrystalMask);
+                    ImGui.PushStyleColor(0, RGBToFloat(134), RGBToFloat(136), RGBToFloat(138), 1.0f); //text colour
+                    ImGui.SameLine();
+                    ImGui.Text("Have on action bar");
+                    ImGui.PopStyleColor(1);
+                    script.useSuperheatForm = ImGui.Checkbox("Use Superheat Form", script.useSuperheatForm);
+                    ImGui.PushStyleColor(0, RGBToFloat(134), RGBToFloat(136), RGBToFloat(138), 1.0f); //text colour
+                    ImGui.SameLine();
+                    ImGui.Text("Have on action bar");
+                    ImGui.PopStyleColor(1);
+                    script.useNecromancyPotion = ImGui.Checkbox("Use Necromancy Potion", script.useNecromancyPotion);
+                    ImGui.PushStyleColor(0, RGBToFloat(134), RGBToFloat(136), RGBToFloat(138), 1.0f); //text colour
+                    ImGui.SameLine();
+                    ImGui.Text("Use any variant of >necromancy< potions/flasks etc");
+                    ImGui.PopStyleColor(1);
                     script.useHunter = ImGui.Checkbox("Use Extreme Hunter Potion", script.useHunter);
                     script.usedivination = ImGui.Checkbox("Use Extreme Divination Potion", script.usedivination);
                     script.usecooking = ImGui.Checkbox("Use Extreme Cooking Potion", script.usecooking);
                     ImGui.SeparatorText("Dummy Options");
                     ImGui.PushStyleColor(0, RGBToFloat(134), RGBToFloat(136), RGBToFloat(138), 1.0f); //text colour
-                    ImGui.Text("Go to a Remote Location where nobody else has a chance to deploy a dummy");
+                    ImGui.Text("Go to a Remote Location where nobody else has a chance to deploy a dummy + Place on action bar");
                     ImGui.PopStyleColor(1);
                     script.useMeleeDummy = ImGui.Checkbox("Use Melee Dummy", script.useMeleeDummy);
                     script.useRangedDummy = ImGui.Checkbox("Use Ranged Dummy", script.useRangedDummy);
