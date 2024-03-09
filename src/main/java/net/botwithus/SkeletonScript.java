@@ -24,6 +24,7 @@ import net.botwithus.rs3.game.skills.Skills;
 import net.botwithus.rs3.game.vars.VarManager;
 import net.botwithus.rs3.script.Execution;
 import net.botwithus.rs3.script.LoopingScript;
+import net.botwithus.rs3.script.ScriptConsole;
 import net.botwithus.rs3.script.config.ScriptConfig;
 import net.botwithus.rs3.util.RandomGenerator;
 
@@ -235,7 +236,7 @@ public class SkeletonScript extends LoopingScript {
         }
         super.initialize();
         this.isBackgroundScript = true;
-        this.loopDelay = 600;
+        this.loopDelay = RandomGenerator.nextInt(1000, 1200);
         this.sgc = new SkeletonScriptGraphicsContext(getConsole(), this);
         this.runStartTime = System.currentTimeMillis();
     }
@@ -262,6 +263,7 @@ public class SkeletonScript extends LoopingScript {
             println("Attempted to stop script, but it is not running.");
         }
     }
+    private boolean hasUsedInvokeDeath = false;
 
     @Override
     public void onLoop() {
@@ -739,19 +741,23 @@ public class SkeletonScript extends LoopingScript {
     }
 
     private void Deathmark() {
-        if (InvokeDeath) {
-            if (Interfaces.isOpen(1490)) {
-                ComponentQuery query = ComponentQuery.newQuery(1490);
-                ResultSet<Component> results = query.spriteId(30100).results();
+        if (getLocalPlayer() == null) {
+            return;
+        }
+        if (InvokeDeath && getLocalPlayer().hasTarget()) {
 
-                if (results.isEmpty()) {
-                    ActionBar.useAbility("Invoke Death");
-                    Execution.delay(RandomGenerator.nextInt(1800, 2500));
-                    println("Used 'Invoke Death'");
-                }
+            ComponentQuery query = ComponentQuery.newQuery(1490).spriteId(30100);
+            if (query.results().isEmpty()) {
+                Execution.delay(RandomGenerator.nextInt(1000, 2000));
+                ActionBar.useAbility("Invoke Death");
+                println("Used Invoke Death");
+                Execution.delayUntil(RandomGenerator.nextInt(60000, 120000), () -> getLocalPlayer().getTarget().getCurrentHealth() == 0);
+                println("Target is dead, invoke death successful");
+                Execution.delay(RandomGenerator.nextInt(1000, 2000));
             }
         }
     }
+
 
     private void UseSaraBrew() {
         if (useSaraBrew) {
